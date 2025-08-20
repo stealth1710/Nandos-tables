@@ -16,7 +16,7 @@ export default function AuthPage() {
     setError("");
 
     try {
-      const res = await axios.post("http://localhost:3001/api/auth/login", {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
         username,
         password,
       });
@@ -41,6 +41,7 @@ export default function AuthPage() {
         )}
 
         <form onSubmit={login} className="space-y-4">
+          {/* Username */}
           <div>
             <label className="block mb-1 text-white/80 text-xl">Username</label>
             <input
@@ -53,6 +54,7 @@ export default function AuthPage() {
             />
           </div>
 
+          {/* Password with Eye Toggle */}
           <div>
             <label className="block mb-1 text-white/80 text-xl">Password</label>
             <div className="relative">
@@ -66,15 +68,16 @@ export default function AuthPage() {
               />
               <motion.button
                 type="button"
-                whileTap={{ scale: 0.8 }}
+                whileTap={{ scale: 0.9 }}
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute top-2 right-3 text-black/70"
+                className="absolute right-3 top-3 text-black"
               >
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
               </motion.button>
             </div>
           </div>
 
+          {/* Submit */}
           <button
             type="submit"
             className="w-full bg-blue-500/80 hover:bg-blue-600/90 text-white py-2 rounded-full transition"

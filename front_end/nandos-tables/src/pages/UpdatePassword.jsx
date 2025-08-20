@@ -35,7 +35,7 @@ export default function UpdatePassword() {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        "http://localhost:3001/api/auth/change-password",
+        `${import.meta.env.VITE_API_URL}/api/auth/change-password`,
         {
           currentPassword,
           newPassword,

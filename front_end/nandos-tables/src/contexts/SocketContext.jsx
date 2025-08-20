@@ -13,7 +13,7 @@ export const SocketProvider = ({ children }) => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const newSocket = io("http://localhost:3001", {
+    const newSocket = io(`${import.meta.env.VITE_API_URL}`, {
       auth: { token },
       reconnection: true,
       reconnectionAttempts: 5,
