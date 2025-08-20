@@ -8,7 +8,7 @@ const socketio = require("socket.io");
 const authRoutes = require("./routes/auth");
 const Messages = require("./models/Messages");
 
-const Front_end = process.env.FRONT_END
+
 const app = express();
 const server = http.createServer(app);
 const io = new socketio.Server(server, {
