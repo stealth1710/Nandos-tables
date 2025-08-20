@@ -13,8 +13,10 @@ export const SocketProvider = ({ children }) => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const newSocket = io(`${import.meta.env.VITE_API_URL}`, {
+    const newSocket = io(import.meta.env.VITE_API_URL, {
       auth: { token },
+      withCredentials: true, // ✅ Allow cookies/CORS
+      transports: ["websocket", "polling"], // ✅ Ensure compatibility with Render/Netlify
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
