@@ -13,7 +13,8 @@ const app = express();
 const server = http.createServer(app);
 const io = new socketio.Server(server, {
   cors: {
-    origin: Front_end,
+    origin: ["http://localhost:5173",
+      "https://nandos-o2.netlify.app/"],
     methods: ["GET", "POST"],
   },
 });
