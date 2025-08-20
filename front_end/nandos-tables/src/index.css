@@ -1,0 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat+Brush&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes fireFlicker {
+  0% {
+    background-position: 50% 100%;
+  }
+  25% {
+    background-position: 55% 95%;
+  }
+  50% {
+    background-position: 50% 90%;
+  }
+  75% {
+    background-position: 45% 95%;
+  }
+  100% {
+    background-position: 50% 100%;
+  }
+}
+
+.fire-gradient {
+  background: linear-gradient(
+    0deg,
+    #9c5709,
+    #ffffff,
+    #000000,
+    #ffffff
+    /* #dacc07,
+    #77eeee,
+    #eb2c2c,
+    #054164 */
+  );
+  background-size: 200% 200%;
+  animation: fireFlicker 12s ease-in-out infinite;
+}
