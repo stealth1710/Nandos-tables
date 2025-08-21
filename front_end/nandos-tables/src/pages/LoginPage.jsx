@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import SmoothDotsLoader from "../components/SmoothDotsLoader";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -10,10 +11,12 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false); // 🔄 loader state
 
   const login = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     try {
       const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
@@ -28,6 +31,8 @@ export default function AuthPage() {
       navigate("/Home");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
+    } finally {
+      setLoading(false); // ✅ hide loader after request finishes
     }
   };
 
@@ -51,6 +56,7 @@ export default function AuthPage() {
               className="w-full px-4 py-2 rounded-lg bg-white/20 border border-white/30 placeholder-white/70 text-white backdrop-blur-sm focus:outline-none text-sm"
               placeholder="Enter your username"
               required
+              disabled={loading}
             />
           </div>
 
@@ -65,6 +71,7 @@ export default function AuthPage() {
                 className="w-full px-4 py-2 pr-10 rounded-lg bg-white/20 border border-white/30 placeholder-white/70 text-white backdrop-blur-sm focus:outline-none text-sm"
                 placeholder="Enter your password"
                 required
+                disabled={loading}
               />
               <motion.button
                 type="button"
@@ -79,11 +86,13 @@ export default function AuthPage() {
 
           {/* Submit */}
           <button
-            type="submit"
-            className="w-full bg-blue-500/80 hover:bg-blue-600/90 text-white py-2 rounded-full transition"
-          >
-            Login
-          </button>
+  type="submit"
+  className="w-full bg-blue-500/80 hover:bg-blue-600/90 text-white py-2 rounded-full transition flex justify-center items-center "
+  disabled={loading}
+>
+  {loading ? <SmoothDotsLoader /> : "Login"}
+</button>
+
         </form>
       </div>
     </div>
