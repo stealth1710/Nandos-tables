@@ -7,6 +7,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { SocketProvider } from "./contexts/SocketContext";
 import { useEffect, useState } from "react";
 
+
 export default function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -26,7 +27,7 @@ export default function App() {
   return (
     <SocketProvider>
       {!isOnline && (
-        <div className="w-full bg-red-600 text-white text-center py-2 fixed top-0 z-50">
+        <div className="w-full bg-red-600 text-white text-center py-2 fixed top-0 z-50 font-caveat">
           ⚠️ You are offline. Please check your internet connection.
         </div>
       )}
