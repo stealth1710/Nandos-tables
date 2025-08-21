@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSocket } from "../contexts/SocketContext";
 import Navbar from "../components/Navbar";
-import Iridescence from "../components/Iridescence";
 import "../index.css"; // Caveat Brush font
 
 export default function Loggedin() {
@@ -13,6 +12,7 @@ export default function Loggedin() {
   const [queue, setQueue] = useState([]);
   const [newQueueSize, setNewQueueSize] = useState("");
   const [commentDrafts, setCommentDrafts] = useState({});
+  const [loadingTables, setLoadingTables] = useState(true);
 
   useEffect(() => {
     if (!socket) return;
@@ -23,6 +23,7 @@ export default function Loggedin() {
         formatted[tableSize] = (formatted[tableSize] || 0) + count;
       });
       setTables(formatted);
+      setLoadingTables(false);
     });
 
     socket.on("init-queue", (data) => setQueue(data));
@@ -83,17 +84,19 @@ export default function Loggedin() {
     socket.emit("mark-done", { id });
   };
 
+  const SkeletonTile = () => (
+    <div className="animate-pulse bg-white/20 rounded-lg p-4 text-center backdrop-blur-lg h-40 flex flex-col items-center justify-center shadow">
+      <div className="h-6 bg-white/40 rounded w-2/3 mb-4"></div>
+      <div className="h-8 bg-white/50 rounded w-1/2 mb-4"></div>
+      <div className="flex gap-4">
+        <div className="h-8 w-8 bg-white/30 rounded-full"></div>
+        <div className="h-8 w-8 bg-white/30 rounded-full"></div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="relative min-h-screen font-caveat text-black overflow-hidden fire-gradient">
-      {/* Iridescent Full-Page Background */}
-      {/* <div className="absolute inset-0 -z-10">
-        <Iridescence
-          color={[.7, 0.5, .15]} 
-          speed={0.4}
-          amplitude={0.15}
-        />
-      </div> */}
-
       <Navbar />
 
       <div className="pt-24 md:pt-40 max-w-4xl mx-auto px-4">
@@ -118,30 +121,32 @@ export default function Loggedin() {
         {/* Availability Grid */}
         {activeTab === "availability" ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tableSizes.map((size) => (
-              <div
-                key={size}
-                className="relative bg-white/30 shadow-lg rounded-lg p-4 text-center backdrop-blur-lg"
-              >
-                <h2 className="mb-2 text-lg">Table for {size}</h2>
-                <p className="text-4xl mb-4">{tables[size] ?? 0}</p>
-                <div className="flex justify-center space-x-4">
-                  <button
-                    onClick={() => updateTable(size, 1)}
-                    className="bg-orange-500/60 text-black px-3 py-1 rounded-full hover:bg-orange-600/80 transition"
+            {loadingTables
+              ? tableSizes.map((_, i) => <SkeletonTile key={i} />)
+              : tableSizes.map((size) => (
+                  <div
+                    key={size}
+                    className="relative bg-white/30 shadow-lg rounded-lg p-4 text-center backdrop-blur-lg"
                   >
-                    +
-                  </button>
-                  <button
-                    onClick={() => updateTable(size, -1)}
-                    className="bg-blue-500/60 text-black px-3 py-1 rounded-full hover:bg-blue-600/80 transition"
-                    disabled={(tables[size] || 0) === 0}
-                  >
-                    -
-                  </button>
-                </div>
-              </div>
-            ))}
+                    <h2 className="mb-2 text-lg">Table for {size}</h2>
+                    <p className="text-4xl mb-4">{tables[size] ?? 0}</p>
+                    <div className="flex justify-center space-x-4">
+                      <button
+                        onClick={() => updateTable(size, 1)}
+                        className="bg-orange-500/60 text-black px-3 py-1 rounded-full hover:bg-orange-600/80 transition"
+                      >
+                        +
+                      </button>
+                      <button
+                        onClick={() => updateTable(size, -1)}
+                        className="bg-blue-500/60 text-black px-3 py-1 rounded-full hover:bg-blue-600/80 transition"
+                        disabled={(tables[size] || 0) === 0}
+                      >
+                        -
+                      </button>
+                    </div>
+                  </div>
+                ))}
           </div>
         ) : (
           <>
