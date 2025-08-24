@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useSocket } from "../contexts/SocketContext";
 import Navbar from "../components/Navbar";
-import "../index.css"; // Caveat Brush font
+import { motion, AnimatePresence } from "framer-motion";
+import "../index.css";
 
 export default function Loggedin() {
   const socket = useSocket();
@@ -12,7 +13,19 @@ export default function Loggedin() {
   const [queue, setQueue] = useState([]);
   const [newQueueSize, setNewQueueSize] = useState("");
   const [commentDrafts, setCommentDrafts] = useState({});
+  const [chatDrafts, setChatDrafts] = useState({});
+  const [chatMessages, setChatMessages] = useState({});
+  const [chatToggles, setChatToggles] = useState({});
+  const [chatNotifications, setChatNotifications] = useState({});
   const [loadingTables, setLoadingTables] = useState(true);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [now, setNow] = useState(Date.now());
+  const [averageWait, setAverageWait] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!socket) return;
@@ -33,15 +46,33 @@ export default function Loggedin() {
         [tableSize]: Math.max((prev[tableSize] || 0) + delta, 0),
       }));
     });
+
     socket.on("queue-added", (entry) => setQueue((prev) => [...prev, entry]));
     socket.on("queue-updated", (updated) => {
       setQueue((prev) =>
         prev.map((entry) => (entry._id === updated._id ? updated : entry))
       );
     });
+
     socket.on("queue-removed", ({ id }) => {
       setQueue((prev) => prev.filter((entry) => entry._id !== id));
     });
+
+    socket.on("chat-message", ({ tableId, message }) => {
+      setChatMessages((prev) => ({
+        ...prev,
+        [tableId]: [...(prev[tableId] || []), { message }],
+      }));
+
+      setChatNotifications((prev) => {
+        if (!chatToggles[tableId]) {
+          return { ...prev, [tableId]: true };
+        }
+        return prev;
+      });
+    });
+
+    socket.on("average-wait-time", (ms) => setAverageWait(ms));
 
     return () => {
       socket.off("init-tables");
@@ -50,8 +81,10 @@ export default function Loggedin() {
       socket.off("queue-added");
       socket.off("queue-updated");
       socket.off("queue-removed");
+      socket.off("chat-message");
+      socket.off("average-wait-time");
     };
-  }, [socket]);
+  }, [socket, chatToggles]);
 
   const updateTable = (size, delta) => {
     if (!socket) return;
@@ -76,81 +109,137 @@ export default function Loggedin() {
     });
   };
 
-  const markSendUp = (id) => {
-    socket.emit("mark-sent", { id });
+  const sendChatMessage = (tableId, message) => {
+    if (!message || !socket) return;
+    socket.emit("send-chat-message", { tableId, message });
+    setChatDrafts((prev) => {
+      const updated = { ...prev };
+      delete updated[tableId];
+      return updated;
+    });
   };
 
-  const markDone = (id) => {
-    socket.emit("mark-done", { id });
+  const markSendUp = (id) => socket.emit("mark-sent", { id });
+  const markDone = (id) => socket.emit("mark-done", { id });
+
+  const confirmResetTables = () => {
+    socket.emit("reset-availability");
+    setLoadingTables(true);
+    setShowResetModal(false);
   };
 
-  const SkeletonTile = () => (
-    <div className="animate-pulse bg-white/20 rounded-lg p-4 text-center backdrop-blur-lg h-40 flex flex-col items-center justify-center shadow">
-      <div className="h-6 bg-white/40 rounded w-2/3 mb-4"></div>
-      <div className="h-8 bg-white/50 rounded w-1/2 mb-4"></div>
-      <div className="flex gap-4">
-        <div className="h-8 w-8 bg-white/30 rounded-full"></div>
-        <div className="h-8 w-8 bg-white/30 rounded-full"></div>
-      </div>
-    </div>
-  );
+  const formatDuration = (ms) => {
+    const mins = Math.floor(ms / 60000);
+    const secs = Math.floor((ms % 60000) / 1000);
+    return `${mins}m ${secs}s`;
+  };
 
   return (
     <div className="relative min-h-screen font-caveat text-black overflow-hidden fire-gradient">
       <Navbar />
 
-      <div className="pt-24 md:pt-40 max-w-4xl mx-auto px-4">
-        {/* Tabs */}
+      {activeTab === "availability" && (
+        <div className="absolute right-4 top-24 md:top-32 z-10">
+          <button
+            onClick={() => setShowResetModal(true)}
+            className="bg-red-600 text-white px-4 py-2 rounded-full hover:bg-red-700 transition backdrop-blur shadow"
+          >
+            Reset to Default
+          </button>
+        </div>
+      )}
+
+      <AnimatePresence>
+        {showResetModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center backdrop-blur"
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              className="bg-white text-black p-6 rounded-xl max-w-sm w-full text-center shadow-xl"
+            >
+              <h2 className="text-xl font-semibold mb-4">Reset Table Availability?</h2>
+              <p className="mb-6 text-sm text-gray-700">
+                This will overwrite the current availability with default values.
+              </p>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={confirmResetTables}
+                  className="bg-red-600 text-white px-4 py-2 rounded-full hover:bg-red-700 transition"
+                >
+                  Yes, Reset
+                </button>
+                <button
+                  onClick={() => setShowResetModal(false)}
+                  className="bg-gray-300 px-4 py-2 rounded-full hover:bg-gray-400 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="pt-32 max-w-4xl mx-auto px-4 relative">
         <div className="flex justify-center mb-8 space-x-4">
           {["availability", "queue"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-6 py-2 rounded-full transition border 
-                ${
-                  activeTab === tab
-                    ? "bg-orange-500/80 border-black/40 backdrop-blur-lg text-black"
-                    : "bg-red/10 border-black/20 backdrop-blur-sm text-black/80"
-                }`}
+              className={`px-6 py-2 rounded-full transition border ${
+                activeTab === tab
+                  ? "bg-orange-500/80 border-black/40 backdrop-blur-lg text-black"
+                  : "bg-red/10 border-black/20 backdrop-blur-sm text-black/80"
+              }`}
             >
               {tab === "availability" ? "Table Availability" : "Waiting Queue"}
             </button>
           ))}
         </div>
 
-        {/* Availability Grid */}
-        {activeTab === "availability" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {loadingTables
-              ? tableSizes.map((_, i) => <SkeletonTile key={i} />)
-              : tableSizes.map((size) => (
-                  <div
-                    key={size}
-                    className="relative bg-white/30 shadow-lg rounded-lg p-4 text-center backdrop-blur-lg"
-                  >
-                    <h2 className="mb-2 text-lg">Table for {size}</h2>
-                    <p className="text-4xl mb-4">{tables[size] ?? 0}</p>
-                    <div className="flex justify-center space-x-4">
-                      <button
-                        onClick={() => updateTable(size, 1)}
-                        className="bg-orange-500/60 text-black px-3 py-1 rounded-full hover:bg-orange-600/80 transition"
-                      >
-                        +
-                      </button>
-                      <button
-                        onClick={() => updateTable(size, -1)}
-                        className="bg-blue-500/60 text-black px-3 py-1 rounded-full hover:bg-blue-600/80 transition"
-                        disabled={(tables[size] || 0) === 0}
-                      >
-                        -
-                      </button>
-                    </div>
-                  </div>
-                ))}
+        {activeTab === "queue" && (
+          <div className="bg-black/30 shadow-lg rounded-lg mb-6 text-center text-white/90">
+            Average Wait Time Today: {formatDuration(averageWait)}
           </div>
-        ) : (
+        )}
+
+        {activeTab === "availability" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tableSizes.map((size) => (
+              <div
+                key={size}
+                className="relative bg-white/30 shadow-lg rounded-lg p-4 text-center backdrop-blur-lg"
+              >
+                <h2 className="mb-2 text-lg">Table for {size}</h2>
+                <p className="text-4xl mb-4">{tables[size] ?? 0}</p>
+                <div className="flex justify-center space-x-4">
+                  <button
+                    onClick={() => updateTable(size, 1)}
+                    className="bg-orange-500/60 text-black px-3 py-1 rounded-full hover:bg-orange-600/80 transition"
+                  >
+                    +
+                  </button>
+                  <button
+                    onClick={() => updateTable(size, -1)}
+                    className="bg-blue-500/60 text-black px-3 py-1 rounded-full hover:bg-blue-600/80 transition"
+                    disabled={(tables[size] || 0) === 0}
+                  >
+                    -
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {activeTab === "queue" && (
           <>
-            {/* Add to Queue Input */}
             <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-6">
               <input
                 type="number"
@@ -163,28 +252,39 @@ export default function Loggedin() {
               <button
                 onClick={addToQueue}
                 className="bg-blue-600/60 text-black px-4 py-2 rounded-full hover:bg-blue-700/80 backdrop-blur-md transition"
-                disabled={!newQueueSize.trim()}
               >
                 Add to Queue
               </button>
             </div>
 
-            {/* Waiting Queue Cards */}
             <div className="space-y-4">
               {queue.map((entry) => (
-                <div
-                  key={entry._id}
-                  className={`p-4 rounded-lg backdrop-blur-md  ${
-                    entry.status === "sent"
-                      ? "bg-orange-400/90 text-gray-800"
-                      : "bg-black/30"
-                  }`}
-                >
+                <div key={entry._id} className="p-4 rounded-lg backdrop-blur-md bg-black/30">
                   <div className="flex justify-between items-center">
                     <span className="font-medium text-white text-xl">
                       Waiting for table of {entry.tableSize}
                     </span>
-                    <div className="space-x-2">
+                    <div className="space-x-2 flex items-center">
+                      <button
+                        onClick={() =>
+                          setChatToggles((prev) => {
+                            const show = !prev[entry._id];
+                            if (show) {
+                              setChatNotifications((n) => ({
+                                ...n,
+                                [entry._id]: false,
+                              }));
+                            }
+                            return { ...prev, [entry._id]: show };
+                          })
+                        }
+                        className="relative bg-green-400/60 text-black px-3 py-1 rounded-full hover:bg-green-500/80"
+                      >
+                        {chatToggles[entry._id] ? "Hide Chat" : "Show Chat"}
+                        {chatNotifications[entry._id] && !chatToggles[entry._id] && (
+                          <span className="absolute top-0 left-0 w-2.5 h-2.5 bg-orange-500 rounded-full border border-white animate-ping"></span>
+                        )}
+                      </button>
                       <button
                         onClick={() => markSendUp(entry._id)}
                         className="bg-yellow-400/70 text-white px-3 py-1 rounded-full hover:bg-yellow-500/80"
@@ -200,8 +300,13 @@ export default function Loggedin() {
                     </div>
                   </div>
 
+                  <p className="text-white/70 text-sm mt-1">
+                    Waiting time: {formatDuration(now - new Date(entry.createdAt))}
+                  </p>
+
+                  {/* Comment Box */}
                   {entry.status === "waiting" && !entry.comment && (
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex items-center gap-2 mt-2 bg-blue-200/20 p-2 rounded-lg">
                       <input
                         type="text"
                         value={commentDrafts[entry._id] || ""}
@@ -226,9 +331,44 @@ export default function Loggedin() {
                   )}
 
                   {entry.comment && (
-                    <p className="text-sm italic text-white/80 mt-2">
-                      📝 {entry.comment}
-                    </p>
+                    <p className="text-sm italic text-white/80 mt-2">📝 {entry.comment}</p>
+                  )}
+
+                  {/* Chat Section */}
+                  {chatToggles[entry._id] && (
+                    <div className="mt-2 space-y-2 bg-green-200/20 p-2 rounded-lg">
+                      <div className="flex">
+                        <input
+                          type="text"
+                          placeholder="Send a message"
+                          value={chatDrafts[entry._id] || ""}
+                          onChange={(e) =>
+                            setChatDrafts((prev) => ({
+                              ...prev,
+                              [entry._id]: e.target.value,
+                            }))
+                          }
+                          className="flex-1 px-3 py-1 rounded-full border text-white bg-white/10 placeholder-white/60 backdrop-blur-sm"
+                        />
+                        <button
+                          onClick={() =>
+                            sendChatMessage(entry._id, chatDrafts[entry._id])
+                          }
+                          className="ml-2 px-3 py-1 rounded-full bg-green-500 text-white"
+                        >
+                          Send
+                        </button>
+                      </div>
+                      <div className="max-h-24 overflow-y-auto text-sm space-y-2 pr-1">
+                        {(chatMessages[entry._id] || []).map((msg, i) => (
+                          <div key={i} className="flex justify-start">
+                            <div className="bg-green-300 text-black px-3 py-2 rounded-2xl rounded-bl-none max-w-[75%]">
+                              {msg.message}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
               ))}
