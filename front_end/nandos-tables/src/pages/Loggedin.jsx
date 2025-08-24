@@ -53,7 +53,6 @@ export default function Loggedin() {
         prev.map((entry) => (entry._id === updated._id ? updated : entry))
       );
     });
-
     socket.on("queue-removed", ({ id }) => {
       setQueue((prev) => prev.filter((entry) => entry._id !== id));
     });
@@ -63,7 +62,6 @@ export default function Loggedin() {
         ...prev,
         [tableId]: [...(prev[tableId] || []), { message }],
       }));
-
       setChatNotifications((prev) => {
         if (!chatToggles[tableId]) {
           return { ...prev, [tableId]: true };
@@ -138,6 +136,7 @@ export default function Loggedin() {
     <div className="relative min-h-screen font-caveat text-black overflow-hidden fire-gradient">
       <Navbar />
 
+      {/* Reset Button */}
       {activeTab === "availability" && (
         <div className="absolute right-4 top-24 md:top-32 z-10">
           <button
@@ -149,6 +148,7 @@ export default function Loggedin() {
         </div>
       )}
 
+      {/* Reset Modal */}
       <AnimatePresence>
         {showResetModal && (
           <motion.div
@@ -186,6 +186,7 @@ export default function Loggedin() {
         )}
       </AnimatePresence>
 
+      {/* Tab Switcher */}
       <div className="pt-32 max-w-4xl mx-auto px-4 relative">
         <div className="flex justify-center mb-8 space-x-4">
           {["availability", "queue"].map((tab) => (
@@ -203,12 +204,14 @@ export default function Loggedin() {
           ))}
         </div>
 
+        {/* Average Wait */}
         {activeTab === "queue" && (
           <div className="bg-black/30 shadow-lg rounded-lg mb-6 text-center text-white/90">
             Average Wait Time Today: {formatDuration(averageWait)}
           </div>
         )}
 
+        {/* Table Availability */}
         {activeTab === "availability" && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tableSizes.map((size) => (
@@ -238,6 +241,7 @@ export default function Loggedin() {
           </div>
         )}
 
+        {/* Waiting Queue */}
         {activeTab === "queue" && (
           <>
             <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-6">
@@ -259,7 +263,12 @@ export default function Loggedin() {
 
             <div className="space-y-4">
               {queue.map((entry) => (
-                <div key={entry._id} className="p-4 rounded-lg backdrop-blur-md bg-black/30">
+                <div
+                  key={entry._id}
+                  className={`p-4 rounded-lg backdrop-blur-md ${
+                    entry.status === "sent" ? "bg-orange-700/70" : "bg-black/30"
+                  }`}
+                >
                   <div className="flex justify-between items-center">
                     <span className="font-medium text-white text-xl">
                       Waiting for table of {entry.tableSize}
@@ -304,7 +313,7 @@ export default function Loggedin() {
                     Waiting time: {formatDuration(now - new Date(entry.createdAt))}
                   </p>
 
-                  {/* Comment Box */}
+                  {/* Comment */}
                   {entry.status === "waiting" && !entry.comment && (
                     <div className="flex items-center gap-2 mt-2 bg-blue-200/20 p-2 rounded-lg">
                       <input
@@ -334,7 +343,7 @@ export default function Loggedin() {
                     <p className="text-sm italic text-white/80 mt-2">📝 {entry.comment}</p>
                   )}
 
-                  {/* Chat Section */}
+                  {/* Chat */}
                   {chatToggles[entry._id] && (
                     <div className="mt-2 space-y-2 bg-green-200/20 p-2 rounded-lg">
                       <div className="flex">
