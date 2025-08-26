@@ -31,6 +31,7 @@ export default function Navbar() {
                 text-base sm:text-lg md:text-lg lg:text-4xl
                 absolute left-1/2 transform -translate-x-1/2
                 hidden lg:block
+                font-bold
               "
             >
               Nandos - O2
@@ -42,6 +43,7 @@ export default function Navbar() {
                 text-white  drop-shadow-lg
                 text-base sm:text-lg md:text-lg
                 block lg:hidden
+                font-bold
               "
             >
               Nandos - O2

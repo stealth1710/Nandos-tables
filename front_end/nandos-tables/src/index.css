@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Caveat+Brush&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Squada+One&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -24,9 +24,9 @@
 .fire-gradient {
   background: linear-gradient(
     0deg,
-    #9c5709,
+    #a4cff8,
     #ffffff,
-    #000000,
+    #ffffff,
     #ffffff
     /* #dacc07,
     #77eeee,

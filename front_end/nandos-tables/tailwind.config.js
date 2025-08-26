@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        caveat: ["'Caveat Brush'", "cursive"],
+        caveat: ['"Squada One"', 'cursive'],
       },
     },
   },

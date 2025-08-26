@@ -187,201 +187,246 @@ export default function Loggedin() {
       </AnimatePresence>
 
       {/* Tab Switcher */}
-      <div className="pt-32 max-w-4xl mx-auto px-4 relative">
-        <div className="flex justify-center mb-8 space-x-4">
-          {["availability", "queue"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-6 py-2 rounded-full transition border ${
-                activeTab === tab
-                  ? "bg-orange-500/80 border-black/40 backdrop-blur-lg text-black"
-                  : "bg-red/10 border-black/20 backdrop-blur-sm text-black/80"
-              }`}
+      <div className="pt-32 max-w-4xl mx-auto px-4 relative font-caveat">
+  <div className="flex justify-center mb-8 space-x-4 ">
+    {["availability", "queue"].map((tab) => (
+      <button
+        key={tab}
+        onClick={() => setActiveTab(tab)}
+        className={`px-6 py-2 rounded-full transition border  ${
+          activeTab === tab
+            ? "bg-orange-600 border-black backdrop-blur-lg text-white"
+            : "bg-red/10 border-black backdrop-blur-sm text-black/80"
+        }`}
+      >
+        {tab === "availability" ? "Table Availability" : "Waiting Queue"}
+      </button>
+    ))}
+  </div>
+
+  {activeTab === "queue" && (
+    <div className="bg-black/30 shadow-lg rounded-lg mb-6 text-center text-black/90">
+      Average Wait Time Today: {formatDuration(averageWait)}
+    </div>
+  )}
+
+  {activeTab === "availability" && (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {loadingTables
+        ? Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="bg-black/30 animate-pulse p-4 rounded-lg backdrop-blur-md"
             >
-              {tab === "availability" ? "Table Availability" : "Waiting Queue"}
-            </button>
-          ))}
-        </div>
-
-        {/* Average Wait */}
-        {activeTab === "queue" && (
-          <div className="bg-black/30 shadow-lg rounded-lg mb-6 text-center text-white/90">
-            Average Wait Time Today: {formatDuration(averageWait)}
-          </div>
-        )}
-
-        {/* Table Availability */}
-        {activeTab === "availability" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tableSizes.map((size) => (
-              <div
-                key={size}
-                className="relative bg-white/30 shadow-lg rounded-lg p-4 text-center backdrop-blur-lg"
-              >
-                <h2 className="mb-2 text-lg">Table for {size}</h2>
-                <p className="text-4xl mb-4">{tables[size] ?? 0}</p>
-                <div className="flex justify-center space-x-4">
-                  <button
-                    onClick={() => updateTable(size, 1)}
-                    className="bg-orange-500/60 text-black px-3 py-1 rounded-full hover:bg-orange-600/80 transition"
-                  >
-                    +
-                  </button>
-                  <button
-                    onClick={() => updateTable(size, -1)}
-                    className="bg-blue-500/60 text-black px-3 py-1 rounded-full hover:bg-blue-600/80 transition"
-                    disabled={(tables[size] || 0) === 0}
-                  >
-                    -
-                  </button>
-                </div>
+              <div className="flex flex-col items-center space-y-2" >
+                <div className="h-5 bg-white/30 rounded w-1/2 "></div>
+                <div className="h-12 bg-white/20 rounded w-3/4"></div>
               </div>
-            ))}
-          </div>
-        )}
+              
+              <div className="flex space-x-4  justify-center">
+                <div className="h-8 w-8 bg-white/30 rounded-full "></div>
+                <div className="h-8 w-8 bg-white/30 rounded-full"></div>
+              </div>
+            </div>
+          ))
+        : tableSizes.map((size) => (
+            <div
+              key={size}
+              className="relative bg-black/30 shadow-lg rounded-lg p-4 text-center backdrop-blur-lg"
+            >
+              <h2 className="mb-2 text-lg">Table for {size}</h2>
+              <p className="text-4xl mb-4">{tables[size] ?? 0}</p>
+              <div className="flex justify-center space-x-4">
+                <button
+                  onClick={() => updateTable(size, 1)}
+                  className="bg-green-600/80 text-black px-3 py-1 rounded-full hover:bg-green-600/100 transition "
+                >
+                  +
+                </button>
+                <button
+                  onClick={() => updateTable(size, -1)}
+                  className="bg-red-500/80 text-black px-3 py-1 rounded-full hover:bg-red-500/100 transition"
+                  disabled={(tables[size] || 0) === 0}
+                >
+                  -
+                </button>
+              </div>
+            </div>
+          ))}
+    </div>
+  )}
+
+
+
 
         {/* Waiting Queue */}
         {activeTab === "queue" && (
           <>
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-6">
-              <input
-                type="number"
-                min="1"
-                placeholder="Enter table size"
-                value={newQueueSize}
-                onChange={(e) => setNewQueueSize(e.target.value)}
-                className="bg-black/40 text-white placeholder-white/70 border border-white/30 backdrop-blur-md px-4 py-2 rounded-full focus:outline-none"
-              />
-              <button
-                onClick={addToQueue}
-                className="bg-blue-600/60 text-black px-4 py-2 rounded-full hover:bg-blue-700/80 backdrop-blur-md transition"
-              >
-                Add to Queue
-              </button>
-            </div>
+                    <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3 sm:gap-4 mb-6 w-full px-4 sm:px-0">
+          <input
+            type="number"
+            min="1"
+            placeholder="Enter table size"
+            value={newQueueSize}
+            onChange={(e) => setNewQueueSize(e.target.value)}
+            className="flex-1 sm:w-64 bg-black/40 text-white placeholder-white/70 border border-white/30 backdrop-blur-md px-4 py-2 rounded-full focus:outline-none text-base sm:text-lg"
+          />
+          <button
+            onClick={addToQueue}
+            className="w-full sm:w-auto bg-blue-600/60 text-black px-4 py-2 rounded-full hover:bg-blue-700/80 backdrop-blur-md transition text-base sm:text-lg"
+          >
+            Add to Queue
+          </button>
+        </div>
 
-            <div className="space-y-4">
-              {queue.map((entry) => (
-                <div
-                  key={entry._id}
-                  className={`p-4 rounded-lg backdrop-blur-md ${
-                    entry.status === "sent" ? "bg-orange-700/70" : "bg-black/30"
-                  }`}
+
+            <div className="space-y-6">
+  {queue.map((entry) => (
+    <div
+      key={entry._id}
+      className={`p-4 rounded-lg backdrop-blur-md ${
+        entry.status === "sent" ? "bg-orange-700/70" : "bg-black/30"
+      }`}
+    >
+     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-4">
+  <span className="font-medium text-black text-lg md:text-xl flex items-center gap-2">
+    Waiting for table of
+    <span className="bg-white/80 text-black px-3 py-1 rounded-lg shadow-sm text-base md:text-lg">
+      {entry.tableSize}
+    </span>
+  </span>
+
+  <div className="flex flex-wrap justify-start sm:justify-end gap-2 mt-1 sm:mt-0">
+    <button
+      onClick={() =>
+        setChatToggles((prev) => {
+          const show = !prev[entry._id];
+          if (show) {
+            setChatNotifications((n) => ({
+              ...n,
+              [entry._id]: false,
+            }));
+          }
+          return { ...prev, [entry._id]: show };
+        })
+      }
+      className="relative min-w-[80px] bg-green-400/60 text-black px-3 py-1 rounded-full hover:bg-green-500/80 text-sm md:text-base"
+    >
+      {chatToggles[entry._id] ? "Hide Chat" : "Show Chat"}
+      {chatNotifications[entry._id] && !chatToggles[entry._id] && (
+        <span className="absolute top-0 left-0 w-2.5 h-2.5 bg-orange-500 rounded-full border border-white animate-ping"></span>
+      )}
+    </button>
+
+    <button
+      onClick={() => markSendUp(entry._id)}
+      className="min-w-[80px] bg-yellow-400/70 text-black px-3 py-1 rounded-full hover:bg-yellow-500/80 text-sm md:text-base"
+    >
+      Send Up
+    </button>
+
+    <button
+      onClick={() => markDone(entry._id)}
+      className="min-w-[80px] bg-red-500/80 text-black px-3 py-1 rounded-full hover:bg-red-700/80 text-sm md:text-base"
+    >
+      Bump
+    </button>
+  </div>
+</div>
+
+
+      <p className="text-black/70 text-sm mt-1">
+        Waiting time: {formatDuration( new Date().getTime() - new Date(entry.createdAt).getTime())}
+      </p>
+
+      {/* Comment */}
+      {entry.status === "waiting" && !entry.comment && (
+        <div className="flex items-center gap-2 mt-2 bg-blue-200/20 p-2 rounded-lg">
+          <input
+            type="text"
+            value={commentDrafts[entry._id] || ""}
+            onChange={(e) =>
+              setCommentDrafts((prev) => ({
+                ...prev,
+                [entry._id]: e.target.value,
+              }))
+            }
+            placeholder="Add a comment (optional)"
+            className="flex-1 px-3 py-1 rounded-full border border-white/30 text-white bg-white/10 placeholder-white/60 backdrop-blur-sm text-sm md:text-base"
+          />
+          <button
+            onClick={() =>
+              submitComment(entry._id, commentDrafts[entry._id])
+            }
+            className="bg-blue-500/60 text-black px-2 md:px-3 py-1 rounded-full hover:bg-blue-600/80 text-sm md:text-base"
+          >
+            Save
+          </button>
+        </div>
+      )}
+
+      {entry.comment && (
+        <div className="bg-blue-100/80 text-black text-sm italic px-3 py-2 rounded-lg mt-2 shadow-inner">
+          📝 {entry.comment}
+        </div>
+      )}
+
+      {/* Chat */}
+      {chatToggles[entry._id] && (
+        <div className="mt-2 space-y-2 bg-green-200/20 p-2 rounded-lg">
+          {/* Quick Messages */}
+          <div className="flex flex-wrap gap-2 mb-2">
+            {["With High chair", "Please wait", "5 minutes", "With Buggy","Yes","No"].map(
+              (msg, i) => (
+                <button
+                  key={i}
+                  onClick={() => sendChatMessage(entry._id, msg)}
+                  className="bg-green-300 text-black px-3 py-2 rounded-2xl rounded-bl-none max-w-[75%] text-xs sm:text-sm md:text-base"
                 >
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-white text-xl">
-                      Waiting for table of {entry.tableSize}
-                    </span>
-                    <div className="space-x-2 flex items-center">
-                      <button
-                        onClick={() =>
-                          setChatToggles((prev) => {
-                            const show = !prev[entry._id];
-                            if (show) {
-                              setChatNotifications((n) => ({
-                                ...n,
-                                [entry._id]: false,
-                              }));
-                            }
-                            return { ...prev, [entry._id]: show };
-                          })
-                        }
-                        className="relative bg-green-400/60 text-black px-3 py-1 rounded-full hover:bg-green-500/80"
-                      >
-                        {chatToggles[entry._id] ? "Hide Chat" : "Show Chat"}
-                        {chatNotifications[entry._id] && !chatToggles[entry._id] && (
-                          <span className="absolute top-0 left-0 w-2.5 h-2.5 bg-orange-500 rounded-full border border-white animate-ping"></span>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => markSendUp(entry._id)}
-                        className="bg-yellow-400/70 text-white px-3 py-1 rounded-full hover:bg-yellow-500/80"
-                      >
-                        Send Up
-                      </button>
-                      <button
-                        onClick={() => markDone(entry._id)}
-                        className="bg-gray-600/60 text-white px-3 py-1 rounded-full hover:bg-gray-700/80"
-                      >
-                        Done
-                      </button>
-                    </div>
-                  </div>
+                  {msg}
+                </button>
+              )
+            )}
+          </div>
 
-                  <p className="text-white/70 text-sm mt-1">
-                    Waiting time: {formatDuration(now - new Date(entry.createdAt))}
-                  </p>
+          <div className="flex">
+            <input
+              type="text"
+              placeholder="Send a message"
+              value={chatDrafts[entry._id] || ""}
+              onChange={(e) =>
+                setChatDrafts((prev) => ({
+                  ...prev,
+                  [entry._id]: e.target.value,
+                }))
+              }
+              className="flex-1 px-3 py-1 rounded-full border text-white bg-white/10 placeholder-white/60 backdrop-blur-sm text-sm md:text-base"
+            />
+            <button
+              onClick={() =>
+                sendChatMessage(entry._id, chatDrafts[entry._id])
+              }
+              className="ml-2 px-3 py-1 rounded-full bg-green-500 text-black text-sm md:text-base"
+            >
+              Send
+            </button>
+          </div>
 
-                  {/* Comment */}
-                  {entry.status === "waiting" && !entry.comment && (
-                    <div className="flex items-center gap-2 mt-2 bg-blue-200/20 p-2 rounded-lg">
-                      <input
-                        type="text"
-                        value={commentDrafts[entry._id] || ""}
-                        onChange={(e) =>
-                          setCommentDrafts((prev) => ({
-                            ...prev,
-                            [entry._id]: e.target.value,
-                          }))
-                        }
-                        placeholder="Add a comment (optional)"
-                        className="flex-1 px-3 py-1 rounded-full border border-white/30 text-white bg-white/10 placeholder-white/60 backdrop-blur-sm"
-                      />
-                      <button
-                        onClick={() =>
-                          submitComment(entry._id, commentDrafts[entry._id])
-                        }
-                        className="bg-blue-500/60 text-white px-3 py-1 rounded-full hover:bg-blue-600/80"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  )}
-
-                  {entry.comment && (
-                    <p className="text-sm italic text-white/80 mt-2">📝 {entry.comment}</p>
-                  )}
-
-                  {/* Chat */}
-                  {chatToggles[entry._id] && (
-                    <div className="mt-2 space-y-2 bg-green-200/20 p-2 rounded-lg">
-                      <div className="flex">
-                        <input
-                          type="text"
-                          placeholder="Send a message"
-                          value={chatDrafts[entry._id] || ""}
-                          onChange={(e) =>
-                            setChatDrafts((prev) => ({
-                              ...prev,
-                              [entry._id]: e.target.value,
-                            }))
-                          }
-                          className="flex-1 px-3 py-1 rounded-full border text-white bg-white/10 placeholder-white/60 backdrop-blur-sm"
-                        />
-                        <button
-                          onClick={() =>
-                            sendChatMessage(entry._id, chatDrafts[entry._id])
-                          }
-                          className="ml-2 px-3 py-1 rounded-full bg-green-500 text-white"
-                        >
-                          Send
-                        </button>
-                      </div>
-                      <div className="max-h-24 overflow-y-auto text-sm space-y-2 pr-1">
-                        {(chatMessages[entry._id] || []).map((msg, i) => (
-                          <div key={i} className="flex justify-start">
-                            <div className="bg-green-300 text-black px-3 py-2 rounded-2xl rounded-bl-none max-w-[75%]">
-                              {msg.message}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+          <div className="max-h-24 overflow-y-auto text-sm space-y-2 pr-1">
+            {(chatMessages[entry._id] || []).map((msg, i) => (
+              <div key={i} className="flex justify-start">
+                <div className="bg-green-300 text-black px-3 py-2 rounded-2xl rounded-bl-none max-w-[75%]">
+                  {msg.message}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  ))}
+</div>
+
           </>
         )}
       </div>
