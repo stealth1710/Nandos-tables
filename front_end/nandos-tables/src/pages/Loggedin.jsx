@@ -21,6 +21,12 @@ export default function Loggedin() {
   const [showResetModal, setShowResetModal] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [averageWait, setAverageWait] = useState(0);
+  const [shouldPlaySound, setShouldPlaySound] = useState(false);
+  const [audio] = useState(() => new Audio("/sounds/arpeggio-467.mp3"));
+  const [recentlyAddedId, setRecentlyAddedId] = useState(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [socketId, setSocketId] = useState("");
+
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
@@ -29,7 +35,18 @@ export default function Loggedin() {
 
   useEffect(() => {
     if (!socket) return;
+    const handleConnect = () => {
+    console.log("🔌 Connected! Socket ID:", socket.id);
+    setSocketId(socket.id);
+  };
 
+  socket.on("connect", handleConnect);
+
+  socket.on("connect_error", (err) => {
+        if (err.message === "Invalid token" || err.message === "No token provided") {
+        setSessionExpired(true);
+        }
+        });
     socket.on("init-tables", (data) => {
       const formatted = {};
       data.forEach(({ tableSize, count }) => {
@@ -47,20 +64,35 @@ export default function Loggedin() {
       }));
     });
 
-    socket.on("queue-added", (entry) => setQueue((prev) => [...prev, entry]));
-    socket.on("queue-updated", (updated) => {
-      setQueue((prev) =>
-        prev.map((entry) => (entry._id === updated._id ? updated : entry))
-      );
-    });
+   socket.on("queue-added", (entry) => {
+  setQueue((prev) => [...prev, entry]);
+  setRecentlyAddedId(entry._id)
+  setTimeout(() => setRecentlyAddedId(null), 3000);
+
+  // ✅ Only play if someone else added it
+  if (entry.senderId !== socket.id) {
+    setShouldPlaySound(true);
+
+    // ✅ Optional vibration
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200]); // buzz - pause - buzz
+    }
+  }
+});
+
+socket.on("queue-updated", (updated) => {
+  setQueue((prev) =>
+    prev.map((entry) => (entry._id === updated._id ? updated : entry))
+  );
+});
     socket.on("queue-removed", ({ id }) => {
       setQueue((prev) => prev.filter((entry) => entry._id !== id));
     });
 
-    socket.on("chat-message", ({ tableId, message }) => {
+    socket.on("chat-message", ({ tableId, message,senderId }) => {
       setChatMessages((prev) => ({
         ...prev,
-        [tableId]: [...(prev[tableId] || []), { message }],
+        [tableId]: [...(prev[tableId] || []), { message,senderId }],
       }));
       setChatNotifications((prev) => {
         if (!chatToggles[tableId]) {
@@ -73,6 +105,8 @@ export default function Loggedin() {
     socket.on("average-wait-time", (ms) => setAverageWait(ms));
 
     return () => {
+      socket.off("connect", handleConnect);
+      socket.off("connect_error");
       socket.off("init-tables");
       socket.off("init-queue");
       socket.off("table-updated");
@@ -83,6 +117,41 @@ export default function Loggedin() {
       socket.off("average-wait-time");
     };
   }, [socket, chatToggles]);
+
+  useEffect(() => {
+  if (shouldPlaySound) {
+    audio.loop = true;
+    audio.play().catch((err) => {
+      console.warn("Audio play failed:", err);
+    });
+
+    const stopSound = () => {
+      audio.pause();
+      audio.currentTime = 0;
+      setShouldPlaySound(false);
+    };
+
+    const interactionEvents = ["click", "touchstart", "keydown"];
+    interactionEvents.forEach((event) =>
+      window.addEventListener(event, stopSound)
+    );
+
+    return () => {
+      interactionEvents.forEach((event) =>
+        window.removeEventListener(event, stopSound)
+      );
+    };
+  }
+}, [shouldPlaySound]);
+
+  if (sessionExpired) {
+      return (
+      <div className="min-h-screen flex items-center justify-center bg-black text-white text-lg font-semibold">
+      ⚠️ Session expired. Please log in again.
+      </div>
+      );
+      }
+
 
   const updateTable = (size, delta) => {
     if (!socket) return;
@@ -282,12 +351,14 @@ export default function Loggedin() {
 
             <div className="space-y-6">
   {queue.map((entry) => (
-    <div
-      key={entry._id}
-      className={`p-4 rounded-lg backdrop-blur-md ${
-        entry.status === "sent" ? "bg-orange-700/70" : "bg-black/30"
-      }`}
-    >
+          <div
+        key={entry._id}
+        className={`p-4 rounded-lg backdrop-blur-md transition-all duration-500 ease-in-out ${
+          entry.status === "sent"
+            ? "bg-orange-700/70"
+            : "bg-black/30"
+        } ${recentlyAddedId === entry._id ? "ring-4 ring-yellow-400 " : ""}`}
+      >
      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-4">
   <span className="font-medium text-black text-lg md:text-xl flex items-center gap-2">
     Waiting for table of
@@ -313,6 +384,7 @@ export default function Loggedin() {
       className="relative min-w-[80px] bg-green-400/60 text-black px-3 py-1 rounded-full hover:bg-green-500/80 text-sm md:text-base"
     >
       {chatToggles[entry._id] ? "Hide Chat" : "Show Chat"}
+      
       {chatNotifications[entry._id] && !chatToggles[entry._id] && (
         <span className="absolute top-0 left-0 w-2.5 h-2.5 bg-orange-500 rounded-full border border-white animate-ping"></span>
       )}
@@ -372,11 +444,12 @@ export default function Loggedin() {
       )}
 
       {/* Chat */}
+      <AnimatePresence mode="wait"></AnimatePresence>
       {chatToggles[entry._id] && (
         <div className="mt-2 space-y-2 bg-green-200/20 p-2 rounded-lg">
           {/* Quick Messages */}
           <div className="flex flex-wrap gap-2 mb-2">
-            {["With High chair", "Please wait", "5 minutes", "With Buggy","Yes","No"].map(
+            {["With High chair", "High table", "With Buggy","Yes","No"].map(
               (msg, i) => (
                 <button
                   key={i}
@@ -414,11 +487,23 @@ export default function Loggedin() {
 
           <div className="max-h-24 overflow-y-auto text-sm space-y-2 pr-1">
             {(chatMessages[entry._id] || []).map((msg, i) => (
-              <div key={i} className="flex justify-start">
-                <div className="bg-green-300 text-black px-3 py-2 rounded-2xl rounded-bl-none max-w-[75%]">
-                  {msg.message}
-                </div>
-              </div>
+              <div
+  key={i}
+  className={`flex ${
+    msg.senderId === socketId ? "justify-end" : "justify-start"
+  }`}
+>
+  <div
+    className={`px-3 py-2 rounded-2xl max-w-[75%] text-sm md:text-base ${
+      msg.senderId === socketId
+        ? "bg-green-400 text-black rounded-br-none"
+        : "bg-blue-300 text-black rounded-bl-none"
+    }`}
+  >
+    {msg.message}
+  </div>
+</div>
+
             ))}
           </div>
         </div>

@@ -47,8 +47,10 @@ io.use((socket, next) => {
 
 // Emit average wait time
 async function emitAverageWaitTime() {
-  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const doneEntries = await DoneEntry.find({ doneAt: { $gte: oneDayAgo } });
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0); // sets time to 00:00:00
+
+  const doneEntries = await DoneEntry.find({ doneAt: { $gte: startOfToday } });
 
   let totalWaitMs = 0;
   doneEntries.forEach((entry) => {
@@ -145,21 +147,23 @@ io.on("connection", async (socket) => {
   });
 
   socket.on("add-to-queue", async ({ tableSize, comment }) => {
-    try {
-      const last = await Messages.findOne({ type: "queue" }).sort({ position: -1 });
-      const doc = await Messages.create({
-        userId: socket.userId,
-        tableSize,
-        type: "queue",
-        status: "waiting",
-        comment: comment || "",
-        position: last ? last.position + 1 : 0,
-      });
-      io.emit("queue-added", doc);
-    } catch (err) {
-      console.error("❌ Add to queue error:", err.message);
-    }
-  });
+  try {
+    const last = await Messages.findOne({ type: "queue" }).sort({ position: -1 });
+    const doc = await Messages.create({
+      userId: socket.userId,
+      tableSize,
+      type: "queue",
+      status: "waiting",
+      comment: comment || "",
+      position: last ? last.position + 1 : 0,
+    });
+
+    // Send `senderId` along with the queue entry
+    io.emit("queue-added", { ...doc.toObject(), senderId: socket.id });
+  } catch (err) {
+    console.error("❌ Add to queue error:", err.message);
+  }
+});
 
   socket.on("reorder-queue", async (newOrderIds) => {
     try {
@@ -224,11 +228,16 @@ io.on("connection", async (socket) => {
         tableId: tableId || null,
         message,
       });
+      const messageToSend = {
+      ...chat._doc,
+      tableId,
+      senderId: socket.id,
+      } // ✅ attach socket id
 
       if (tableId) {
-        io.emit("chat-message", { ...chat._doc, tableId });
+        io.emit("chat-message", messageToSend);
       } else {
-        io.emit("general-chat-message", chat);
+        io.emit("general-chat-message", messageToSend);
       }
     } catch (err) {
       console.error("❌ Chat error:", err.message);
