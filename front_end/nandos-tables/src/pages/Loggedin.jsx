@@ -36,7 +36,6 @@ export default function Loggedin() {
   useEffect(() => {
     if (!socket) return;
     const handleConnect = () => {
-    console.log("🔌 Connected! Socket ID:", socket.id);
     setSocketId(socket.id);
   };
 
